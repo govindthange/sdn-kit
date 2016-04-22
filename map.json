@@ -1,0 +1,14 @@
+{
+  "nodes":[
+		{"name":"192.9.200.47","device":"host","group":1},
+		{"name":"192.9.200.9","device":"server","group":2},
+		{"name":"192.9.200.65","device":"firewall","group":2},
+		{"name":"192.9.200.48","device":"host","group":2},
+		{"name":"192.9.200.19","device":"host","group":3},
+		{"name":"192.9.200.99", "device":"wireless_router", "group":3}
+	],
+	"links":[
+		{"source":2,"target":1,"weight":1},
+		{"source":0,"target":2,"weight":3}
+	]
+}

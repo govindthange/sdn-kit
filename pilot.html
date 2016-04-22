@@ -7,8 +7,29 @@
 	  <meta name="viewport" content="width=device-width">
 	  <title>JS Bin</title>
 	  <style>
-		text {
-		  font-size: 2em;
+		.nodeLegend {
+			font-size: 0.75em;
+		}
+		
+		image {
+		  width: 64px;
+		  height: 64px;
+		  transform: translate(-32px,-32px);
+		}
+		
+		.link {
+		  stroke: #aaa;
+		}
+
+		.node text {
+			stroke:#333;
+			cursos:pointer;
+		}
+
+		.node circle{
+			stroke:#fff;
+			stroke-width:3px;
+			fill:#555;
 		}
 	  </style>
 	</head>
@@ -17,7 +38,7 @@
 	<svg id="networkGraphId" />
 		
 	<script>
-		var outerWidth = 300;
+		var outerWidth = 600;
 		var outerHeight = 250;
 		var rMin = 5;
 		var rMax = 20;
@@ -35,50 +56,79 @@
 		
 		var g = svg.append('g')
 					.attr("transform", "translate("+marginLeft+","+marginTop+")");
-					
-		var xScale = d3.scale.linear().range([0, innerWidth]);
-		var yScale = d3.scale.linear().range([innerHeight, 0]);
-		var rScale = d3.scale.linear().range([rMin, rMax]);
-		var colorScale = d3.scale.category10();
 		
-		function processCsvDataAndTypeCast(d) {
-			d.x = +d.x;
-			d.y = +d.y;
-			return d;
-		}
+		var force = d3.layout.force()
+					.gravity(.05)
+					.distance(200)
+					.charge(-100)
+					.size([innerWidth, innerHeight]);
 		
-		// http://bl.ocks.org/d3noob/8329447
-		// https://www.youtube.com/watch?v=iZ6MSHA4FMU
-		
-		d3.json("tree.json", function(err, data) {
-			root = data[0];
-			update(root);
+		d3.json("map.json", function(err, data) {
+			update(data);
 		});
 		 
-		function update(data) {			
-			//data.forEach(function (d) { console.log('x=' + d.x + ', y=' + d.y +", x+y=" + (d.x+d.y)); });
-			xScale.domain(d3.extent(data, function(d){return d['x'];}));
-			yScale.domain(d3.extent(data, function(d){return d['y'];}));
-			colorScale.domain(d3.extent(data, function(d){return d['cpuUtilization'];}));
-			
+		function update(json) {	
+			force
+				.nodes(json.nodes)
+				.links(json.links)
+				.start();
+
+		
 			// Bind Data
-			var networkNodes = g.selectAll('circle').data(data);
+			var networkLinks = g.selectAll('.link').data(json.links);
+			var networkNodes = g.selectAll('.node').data(json.nodes);
 			
 			// Enter
-			networkNodes.enter().append("circle")
-				.attr("r", 10);
-				
-			//	Update
+			networkLinks
+				.enter()
+					.append("line")
+						.attr("class", "link")
+						.call(force.drag);
 			networkNodes
-				//.attr("cx", function(d) { console.log('Rendering x=' + d.x); return d.x;})
-				//.attr("cy", function(d) { console.log('Rendering y=' + d.y); return d.y;});
-				.attr("cx", function(d) { return xScale(d.x);})
-				.attr("cy", function(d) { return yScale(d.y);})
-				.attr("fill", function(d) { return colorScale(d.cpuUtilization);});
+				.enter()
+					.append("g")
+						.attr("class", "node")
+						.style("stroke-width", function(d) { return Math.sqrt(d.weight); });
+			
+						
+			networkNodes.append("circle")
+				.attr("r", "5");
 				
-			networkNodes
-				.exit().remove();
+			networkNodes.append("image")
+				.attr("xlink:href", function(d) {
+										if (d.device === 'host') {return "./images/host.png";}
+										else if (d.device === 'server') {return "./images/server.png";}
+										else if (d.device === 'firewall') {return "./images/firewall-horizontal.png";}
+										else if (d.device === 'switch') {return "./images/switch.png";}
+										else if (d.device === 'wireless_router') {return "./images/wireless-router.png";}
+										else if (d.device === 'router') {return "./images/router.png";}
+										
+										return null;
+									})
+				/*.attr("transform", "translate(-16,-16)")*/;
+			networkNodes.append("text")
+				.attr("class", "nodeLegend")
+				//.attr("dx", ".15em")
+				.attr("dx", -35)
+				.attr("dy", 35)
+				.text(function(d) { return d.name;});
+				
+				
+			force.on("tick", function() {
+				networkLinks
+					.attr("x1", function(d) { return d.source.x; })
+					.attr("y1", function(d) { return d.source.y; })
+					.attr("x2", function(d) { return d.target.x; })
+					.attr("y2", function(d) { return d.target.y; });
+
+				networkNodes.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+			});
+			
 		}
+		
+		// http://bl.ocks.org/jose187/4733747q
+		// http://bl.ocks.org/mbostock/1153292
+		// http://bl.ocks.org/mbostock/raw/1153292/
 	</script>
 </body>
 </html>
