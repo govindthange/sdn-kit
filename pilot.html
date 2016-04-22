@@ -13,17 +13,7 @@
 	  </style>
 	</head>
 <body>
-	<svg style="top: 350; position: absolute;" width="350" height="250">
-		<rect x="0" y="0" width="100" height="100" fill="rgb(0,0,255)"/>
-		<text x="150" y="50" stroke="green" stroke-width="1">test</text>
-		<circle cx="200" cy="100"  stroke="red" fill="rgba(255,0,0, 0.25)" r="50"></circle>
-		<g transform="translate(50,100)">
-			<path d="m10 10 l60 20 l10 60z" stroke="white" fill="rgba(0,255,0,0.55)" stroke-width="2"/>
-		</g>
-	</svg>
 
-	<svg id="scatterChartId" style="left: 350; top: 350; position: absolute;" />
-	
 	<svg id="networkGraphId" />
 		
 	<script>
@@ -38,7 +28,7 @@
 		var innerWidth = outerWidth - marginLeft - marginRight;
 		var innerHeight = outerHeight - marginTop - marginBottom;
 		
-		var svg = d3.select('#scatterChartId')
+		var svg = d3.select('#networkGraphId')
 					.attr("background-color", "yellow")
 					.attr("width", outerWidth)
 					.attr("height", outerHeight);
@@ -57,7 +47,15 @@
 			return d;
 		}
 		
-		function renderCsvData(data) {			
+		// http://bl.ocks.org/d3noob/8329447
+		// https://www.youtube.com/watch?v=iZ6MSHA4FMU
+		
+		d3.json("tree.json", function(err, data) {
+			root = data[0];
+			update(root);
+		});
+		 
+		function update(data) {			
 			//data.forEach(function (d) { console.log('x=' + d.x + ', y=' + d.y +", x+y=" + (d.x+d.y)); });
 			xScale.domain(d3.extent(data, function(d){return d['x'];}));
 			yScale.domain(d3.extent(data, function(d){return d['y'];}));
@@ -81,8 +79,6 @@
 			networkNodes
 				.exit().remove();
 		}
-		
-	    d3.csv("data.csv", processCsvDataAndTypeCast, renderCsvData);
 	</script>
 </body>
 </html>
