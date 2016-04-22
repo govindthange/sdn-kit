@@ -58,9 +58,9 @@
 					.attr("transform", "translate("+marginLeft+","+marginTop+")");
 		
 		var force = d3.layout.force()
-					//.gravity(.05)
-					//.distance(200)
-					//.charge(-100)
+					.gravity(.05)
+					.distance(200)
+					.charge(-200)
 					.size([innerWidth, innerHeight]);
 		
 		d3.json("map-with-coordinates.json", function(err, data) {
@@ -71,6 +71,7 @@
 			force
 				.nodes(json.nodes)
 				.links(json.links)
+				.alpha(1)
 				.start();
 
 		
@@ -90,15 +91,24 @@
 						.attr("class", "node")
 						.style("stroke-width", function(d) { return Math.sqrt(d.weight); });
 			
-						
+			
+			var n = networkNodes.length;
+			networkNodes.forEach(function(d, i) {
+			  d.x = 10;//d.y = innerWidth / n * i;
+			});
+			
+			var n=100;
+			for (var i = n * n; i > 0; --i) force.tick();
+			force.stop();
+			
 			networkNodes.append("circle")
-				.attr('cx', function(d) { return d.x; })
-				.attr('cy', function(d) { return d.y; })
+				.attr("cx", function(d) { return d.x; })
+				.attr("cy", function(d) { return d.y; })
 				.attr("r", "5");
 				
 			networkNodes.append("image")
-				.attr('x', function(d) { return d.x; })
-				.attr('y', function(d) { return d.y; })
+				.attr("x", function(d) { return d.x; })
+				.attr("y", function(d) { return d.y; })
 				.attr("xlink:href", function(d) {
 										if (d.device === 'host') {return "./images/host.png";}
 										else if (d.device === 'server') {return "./images/server.png";}
@@ -109,12 +119,11 @@
 										
 										return null;
 									})
-				/*.attr("transform", "translate(-16,-16)")*/;
+									
 			networkNodes.append("text")
+				.attr("x", function(d) { return d.x; })
+				.attr("y", function(d) { return d.y; })
 				.attr("class", "nodeLegend")
-				//.attr("dx", ".15em")
-				.attr('x', function(d) { return d.x; })
-				.attr('y', function(d) { return d.y; })
 				.attr("dx", -35)
 				.attr("dy", 35)
 				.text(function(d) { return d.name;});
@@ -124,18 +133,6 @@
 					.attr("y1", function(d) { return d.source.y; })
 					.attr("x2", function(d) { return d.target.x; })
 					.attr("y2", function(d) { return d.target.y; });
-					
-			/*
-			force.on("tick", function() {
-				networkLinks
-					.attr("x1", function(d) { return d.source.x; })
-					.attr("y1", function(d) { return d.source.y; })
-					.attr("x2", function(d) { return d.target.x; })
-					.attr("y2", function(d) { return d.target.y; });
-
-				networkNodes.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
-			});
-			*/
 		}
 		
 		// http://bl.ocks.org/jose187/4733747q
