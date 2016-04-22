@@ -17,26 +17,27 @@
 		  transform: translate(-32px,-32px);
 		}
 		
-		.link {
+		line {
+			fill: none;
+			stroke-width: 1px;
+		}
+		.link-path {
 		  stroke: #aaa;
 		}
 		
 		path {
 			fill: none;
-			stroke: red;
 			stroke-width: 1px;
 		}
-		line {
-			fill: none;
-			stroke: red;
-			stroke-width: 1px;
-		}
-		
-		.link3 {
-		  stroke: blue;
+		.route-path {
+		  stroke: red;
 		  stroke-width: 2;
 		  stroke-linecap: "round";
-		  stroke-dasharray: "5,5";
+		  stroke-dasharray: 5 5;
+		}
+		.hop-path {
+		  stroke: green;/*#ffff00;*/
+		  stroke-width: 1;
 		}
 
 		.node text {
@@ -56,14 +57,14 @@
 	<svg id="networkGraphId" />
 		
 	<script>
-		var outerWidth = 600;
-		var outerHeight = 250;
+		var outerWidth = 700;
+		var outerHeight = 400;
 		var rMin = 5;
 		var rMax = 20;
-		var marginLeft = 10;
-		var marginTop = 10;
-		var marginRight = 10;
-		var marginBottom = 10;
+		var marginLeft = 75;
+		var marginTop = 75;
+		var marginRight = 75;
+		var marginBottom = 75;
 		var innerWidth = outerWidth - marginLeft - marginRight;
 		var innerHeight = outerHeight - marginTop - marginBottom;
 		
@@ -81,6 +82,22 @@
 					.charge(-200)
 					.size([innerWidth, innerHeight]);
 		
+		/*
+		// build the arrow.
+		svg.append("svg:defs").selectAll("marker")
+					.data(["end"])      // Different link/path types can be defined here
+				  .enter().append("svg:marker")    // This section adds in the arrows
+					.attr("id", String)
+					.attr("viewBox", "0 -5 10 10")
+					.attr("refX", 15)
+					.attr("refY", -1.5)
+					.attr("markerWidth", 6)
+					.attr("markerHeight", 6)
+					.attr("orient", "auto")
+				  .append("svg:path")
+					.attr("d", "M0,-5L10,0L0,5");
+		*/
+			
 		d3.json("network.json", function(err, data) {
 			update(data);
 		});
@@ -98,30 +115,55 @@
 					.y(function(d) {return x.y;})
 					
 		var diagonalFn = d3.svg.diagonal().projection(function(d) { return [d.x, d.y]; });
+		
+		var curveFn = function(d) {
+							var dx = d.target.x - d.source.x,
+								dy = d.target.y - d.source.y,
+								dr = Math.sqrt(dx * dx + dy * dy);
+								
+							return "M" + 
+								d.source.x + "," + 
+								d.source.y + "A" + 
+								dr + "," + dr + " 0 0,1 " + 
+								d.target.x + "," + 
+								d.target.y;
+						};
 		 
 		function update(json) {	
 			force
 				.nodes(json.nodes)
 				.links(json.links)
-				.alpha(1)
+				.alpha(0)
 				.start();
-
 			
-			var n=100;
+			svg.append("svg:defs").selectAll("marker")
+							.data(["end"])//["suit", "licensing", "resolved"])
+						  .enter().append("svg:marker")
+							.attr("id", String)
+							.attr("viewBox", "0 -5 10 10")
+							.attr("refX", 5)
+							.attr("markerWidth", 6)
+							.attr("markerHeight", 6)
+							.attr("orient", "auto")
+						  .append("svg:path")
+							.attr("d", "M0,-5L10,0L0,5");
+			
+			var n=50;
 			for (var i = n * n; i > 0; --i) force.tick();
 			force.stop();
 			
 		
-			// Bind Data
-			var networkLinks = g.selectAll('.link').data(json.links);
+			// Bind Data based on filter (separate links based on connecting line type)
+			var networkLinks = g.selectAll('.link-path').data(json.links.filter(function(d) { return d.type === 'link'; }));
+			var networkPaths = g.selectAll('.route-path').data(json.links.filter(function(d) { return d.type === 'route'; }));
+			var networkHops = g.selectAll('.hop-path').data(json.links.filter(function(d) { return d.type === 'hop'; }));
 			var networkNodes = g.selectAll('.node').data(json.nodes);
 			
 			// Enter
 			networkLinks
 				.enter()
-					.append("path")
-						.attr("d", diagonalFn)
-						.attr("class", function(d) { return d.type; })
+					.append("line")
+						.attr("class", "link-path")
 						.call(force.drag);
 			networkNodes
 				.enter()
@@ -129,7 +171,21 @@
 						.attr("class", "node")
 						.style("stroke-width", function(d) { return Math.sqrt(d.weight); });
 			
+			networkPaths
+				.enter()
+					.append("path")
+						.attr("d", diagonalFn)
+						.attr("class", "route-path")
+						.call(force.drag);
 			
+			networkHops
+				.enter()
+					.append("path")
+						.attr("d", curveFn)
+						.attr("class", "hop-path")
+						.call(force.drag)
+						.attr("marker-end", "url(#end)");;
+						
 			var n = networkNodes.length;
 			networkNodes.forEach(function(d, i) {
 			  d.x = 10;//d.y = innerWidth / n * i;
@@ -140,7 +196,7 @@
 				.attr("cx", function(d) { return d.x; })
 				.attr("cy", function(d) { return d.y; })
 				.attr("r", "5");
-				
+			/*	
 			networkNodes.append("image")
 				.attr("x", function(d) { return d.x; })
 				.attr("y", function(d) { return d.y; })
@@ -154,7 +210,7 @@
 										
 										return null;
 									})
-									
+			*/		
 			networkNodes.append("text")
 				.attr("x", function(d) { return d.x; })
 				.attr("y", function(d) { return d.y; })
@@ -164,6 +220,16 @@
 				.text(function(d) { return d.name;});
 			
 			networkLinks
+					.attr("x1", function(d) { return d.source.x; })
+					.attr("y1", function(d) { return d.source.y; })
+					.attr("x2", function(d) { return d.target.x; })
+					.attr("y2", function(d) { return d.target.y; });
+			networkPaths
+					.attr("x1", function(d) { return d.source.x; })
+					.attr("y1", function(d) { return d.source.y; })
+					.attr("x2", function(d) { return d.target.x; })
+					.attr("y2", function(d) { return d.target.y; });
+			networkHops
 					.attr("x1", function(d) { return d.source.x; })
 					.attr("y1", function(d) { return d.source.y; })
 					.attr("x2", function(d) { return d.target.x; })
