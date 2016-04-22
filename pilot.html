@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<meta name="robots" content="noindex">
+<html>
+	<head>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
+	  <meta charset="utf-8">
+	  <meta name="viewport" content="width=device-width">
+	  <title>JS Bin</title>
+	  <style>
+		text {
+		  font-size: 2em;
+		}
+	  </style>
+	</head>
+<body>
+	<svg style="top: 350; position: absolute;" width="350" height="250">
+		<rect x="0" y="0" width="100" height="100" fill="rgb(0,0,255)"/>
+		<text x="150" y="50" stroke="green" stroke-width="1">test</text>
+		<circle cx="200" cy="100"  stroke="red" fill="rgba(255,0,0, 0.25)" r="50"></circle>
+		<g transform="translate(50,100)">
+			<path d="m10 10 l60 20 l10 60z" stroke="white" fill="rgba(0,255,0,0.55)" stroke-width="2"/>
+		</g>
+	</svg>
+
+	<svg id="scatterChartId" style="left: 350; top: 350; position: absolute;" />
+	
+	<svg id="networkGraphId" />
+		
+	<script>
+		var outerWidth = 300;
+		var outerHeight = 250;
+		var rMin = 5;
+		var rMax = 20;
+		var marginLeft = 10;
+		var marginTop = 10;
+		var marginRight = 10;
+		var marginBottom = 10;
+		var innerWidth = outerWidth - marginLeft - marginRight;
+		var innerHeight = outerHeight - marginTop - marginBottom;
+		
+		var svg = d3.select('#scatterChartId')
+					.attr("background-color", "yellow")
+					.attr("width", outerWidth)
+					.attr("height", outerHeight);
+		
+		var g = svg.append('g')
+					.attr("transform", "translate("+marginLeft+","+marginTop+")");
+					
+		var xScale = d3.scale.linear().range([0, innerWidth]);
+		var yScale = d3.scale.linear().range([innerHeight, 0]);
+		var rScale = d3.scale.linear().range([rMin, rMax]);
+		var colorScale = d3.scale.category10();
+		
+		function processCsvDataAndTypeCast(d) {
+			d.x = +d.x;
+			d.y = +d.y;
+			return d;
+		}
+		
+		function renderCsvData(data) {			
+			//data.forEach(function (d) { console.log('x=' + d.x + ', y=' + d.y +", x+y=" + (d.x+d.y)); });
+			xScale.domain(d3.extent(data, function(d){return d['x'];}));
+			yScale.domain(d3.extent(data, function(d){return d['y'];}));
+			colorScale.domain(d3.extent(data, function(d){return d['cpuUtilization'];}));
+			
+			// Bind Data
+			var networkNodes = g.selectAll('circle').data(data);
+			
+			// Enter
+			networkNodes.enter().append("circle")
+				.attr("r", 10);
+				
+			//	Update
+			networkNodes
+				//.attr("cx", function(d) { console.log('Rendering x=' + d.x); return d.x;})
+				//.attr("cy", function(d) { console.log('Rendering y=' + d.y); return d.y;});
+				.attr("cx", function(d) { return xScale(d.x);})
+				.attr("cy", function(d) { return yScale(d.y);})
+				.attr("fill", function(d) { return colorScale(d.cpuUtilization);});
+				
+			networkNodes
+				.exit().remove();
+		}
+		
+	    d3.csv("data.csv", processCsvDataAndTypeCast, renderCsvData);
+	</script>
+</body>
+</html>

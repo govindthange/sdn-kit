@@ -1,0 +1,7 @@
+x,y,deviceType,cpuUtilization
+100,100,switch,10
+130,120,switch,25
+180,85,router,87
+180,40,router,20
+200,200,host,50
+300,300,host,50
