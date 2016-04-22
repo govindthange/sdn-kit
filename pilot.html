@@ -20,13 +20,31 @@
 		.link {
 		  stroke: #aaa;
 		}
+		
+		path {
+			fill: none;
+			stroke: red;
+			stroke-width: 1px;
+		}
+		line {
+			fill: none;
+			stroke: red;
+			stroke-width: 1px;
+		}
+		
+		.link3 {
+		  stroke: blue;
+		  stroke-width: 2;
+		  stroke-linecap: "round";
+		  stroke-dasharray: "5,5";
+		}
 
 		.node text {
 			stroke:#333;
 			cursos:pointer;
 		}
 
-		.node circle{
+		.node circle {
 			stroke:#fff;
 			stroke-width:3px;
 			fill:#555;
@@ -63,9 +81,23 @@
 					.charge(-200)
 					.size([innerWidth, innerHeight]);
 		
-		d3.json("map-with-coordinates.json", function(err, data) {
+		d3.json("network.json", function(err, data) {
 			update(data);
 		});
+		
+		var x = d3.scale.linear().domain([0, 10]).range([0, 700]);
+		var y = d3.scale.linear().domain([0, 10]).range([10, 290]);
+		var lineFn = d3.svg.line()
+					.interpolate("base")
+					.x(function(d,i) {return x(i);})
+					.y(function(d) {return y(d);})
+		
+		var freeLineFn = d3.svg.line()
+					.interpolate("base")
+					.x(function(d,i) {return d.x;})
+					.y(function(d) {return x.y;})
+					
+		var diagonalFn = d3.svg.diagonal().projection(function(d) { return [d.x, d.y]; });
 		 
 		function update(json) {	
 			force
@@ -74,6 +106,11 @@
 				.alpha(1)
 				.start();
 
+			
+			var n=100;
+			for (var i = n * n; i > 0; --i) force.tick();
+			force.stop();
+			
 		
 			// Bind Data
 			var networkLinks = g.selectAll('.link').data(json.links);
@@ -82,8 +119,9 @@
 			// Enter
 			networkLinks
 				.enter()
-					.append("line")
-						.attr("class", "link")
+					.append("path")
+						.attr("d", diagonalFn)
+						.attr("class", function(d) { return d.type; })
 						.call(force.drag);
 			networkNodes
 				.enter()
@@ -97,9 +135,6 @@
 			  d.x = 10;//d.y = innerWidth / n * i;
 			});
 			
-			var n=100;
-			for (var i = n * n; i > 0; --i) force.tick();
-			force.stop();
 			
 			networkNodes.append("circle")
 				.attr("cx", function(d) { return d.x; })
