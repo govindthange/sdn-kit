@@ -8,21 +8,35 @@
   stroke-width: 1.5px;
 }
 
-#errorRoute {
-  fill: red;
+#errorRouteMarkerId {
+  fill: none;
+  stroke: red;
+  stroke-width: 1;
 }
-
 .link.errorRoute {
   stroke: red;
+  stroke-width: 2;
+  stroke-opacity: 0.4;
   stroke-dasharray: 0,2 1;
 }
 
-#congestedRoute {
+#congestedRouteMarkerId {
   fill: orange;
 }
 .link.congestedRoute {
 	stroke: orange;
 	stroke-width: 2;
+}
+
+#testRoute1MarkerId {
+  fill: none;
+  stroke: red;
+  stroke-width: 1;
+}
+.link.testRoute1 {
+  stroke: green;
+  stroke-width: 2;
+  stroke-dasharray: 0,2 1;
 }
 
 circle {
@@ -64,7 +78,7 @@ var links = [
   {source: "172.21.20.0/24", target: "Foxconn", type: "normalRoute"},
   {source: "Oracle", target: "Google", type: "normalRoute"},
   {source: "192.168.1.0/24", target: "CatOsSwitch3", type: "normalRoute"},
-  {source: "172.21.20.0/24", target: "Inventec", type: "normalRoute"},
+  {source: "172.21.20.0/24", target: "server6", type: "normalRoute"},
   {source: "server2", target: "CatOsSwitch2", type: "congestedRoute"},
   {source: "server3", target: "CatOsSwitch2", type: "normalRoute"},
   {source: "server4", target: "server2", type: "normalRoute"},
@@ -76,7 +90,8 @@ var links = [
   {source: "CatOsSwitch2", target: "CatOsSwitch1", type: "congestedRoute"},
   {source: "192.168.1.0/24", target: "CatOsSwitch1", type: "normalRoute"},
   {source: "CatOsSwitch2", target: "server3", type: "errorRoute"},
-  {source: "server1", target: "server5", type: "normalRoute"}
+  {source: "server1", target: "server5", type: "normalRoute"},  
+  {source: "server6", target: "server7", type: "testRoute1"}
 ];
 
 var nodes = {};
@@ -97,45 +112,59 @@ var force = d3.layout.force()
     .size([width, height])
     .linkDistance(100)
     .charge(-300)
+    .on("tick", tick)
     .start();
-
-var n=50;
-for (var i = n * n; i > 0; --i) force.tick();
-force.stop();
 
 var svg = d3.select("body").append("svg")
     .attr("width", width)
     .attr("height", height);
 
 // Per-type markers, as they don't inherit styles.
+var markerData = [
+	{id: 0, name: 'normalRoute', refX: 15, refY:-1.5, markerWidth: 6, markerHeight: 6, path: 'M0,-5L10,0L0,5', viewbox: '0 -5 10 10'},
+	{id: 1, name: 'errorRoute', refX: 1, refY:0, markerWidth: 6, markerHeight: 6, path: 'M0 -5 L10 5 M0 5 L 10 -5', viewbox: '0 -5 10 5'},
+	{id: 2, name: 'congestedRoute', refX: 15, refY:-1.5, markerWidth: 6, markerHeight: 6, path: 'M0,-5L10,0L0,5', viewbox: '0 -5 10 10' },	
+	{id: 3, name: 'circle', refX: 15, refY:-1.5, markerWidth: 6, markerHeight: 6, path: 'M 0, 0  m -5, 0  a 5,5 0 1,0 10,0  a 5,5 0 1,0 -10,0', viewbox: '-6 -6 12 12'},
+	{id: 4, name: 'square', refX: 15, refY:-1.5, markerWidth: 6, markerHeight: 6, path: 'M 0,0 m -5,-5 L 5,-5 L 5,5 L -5,5 Z', viewbox: '-5 -5 10 10'},
+	{id: 5, name: 'arrow', refX: 15, refY:-1.5, markerWidth: 6, markerHeight: 6, path: 'M 0,0 m -5,-5 L 5,0 L -5,5 Z', viewbox: '-5 -5 10 10' },
+	{id: 6, name: 'stub', refX: 15, refY:-1.5, markerWidth: 6, markerHeight: 6, path: 'M 0,0 m -1,-5 L 1,-5 L 1,5 L -1,5 Z', viewbox: '-1 -5 2 10'},
+	{id: 7, name: 'testRoute1', refX: 1, refY:0, markerWidth: 6, markerHeight: 6, path: 'M0 -5 L10 5 M0 5 L 10 -5', viewbox: '0 -5 10 5'}
+];
+
 svg.append("defs").selectAll("marker")
-    .data(["normalRoute", "errorRoute", "congestedRoute"])
+    .data(markerData)
   .enter().append("marker")
-    .attr("id", function(d) { return d; })
+    .attr("id", function(d) { return d.name + "MarkerId"; })
     .attr("viewBox", "0 -5 10 10")
-    .attr("refX", 15)
-    .attr("refY", -1.5)
-    .attr("markerWidth", 6)
-    .attr("markerHeight", 6)
+    .attr("refX", function(d) { return d.refX; })
+    .attr("refY", function(d) { return d.refY; })
+    .attr("markerWidth", function(d) { return d.markerWidth; })
+    .attr("markerHeight", function(d) { return d.markerHeight; })
     .attr("orient", "auto")
   .append("path")
-    .attr("d", "M0,-5L10,0L0,5");
+    .attr("d", function(d) { return d.path; });
 
 var errPath = svg.append("g").selectAll("path")
     .data(force.links().filter(function(d) { return d.type === 'errorRoute'; }))
   .enter().append("path")
     .attr("class", function(d) { return "link " + d.type; })
-	.attr("marker-mid", function(d) { return "url(#" + d.type + ")"; });
+	.attr("marker-mid", function(d) { return "url(#" + d.type + "MarkerId" + ")"; });
 var normalPath = svg.append("g").selectAll("path")
     .data(force.links().filter(function(d) { return d.type === 'normalRoute'; }))
   .enter().append("line")
     .attr("class", function(d) { return "link " + d.type; })
-	.attr("marker-mid", function(d) { return "url(#" + d.type + ")"; });	
+	.attr("marker-mid", function(d) { return "url(#" + d.type + "MarkerId" + ")"; });	
 var path = svg.append("g").selectAll("path")
     .data(force.links().filter(function(d) { return d.type === 'congestedRoute'; }))
   .enter().append("path")
     .attr("class", function(d) { return "link " + d.type; })
-    .attr("marker-end", function(d) { return "url(#" + d.type + ")"; });
+    .attr("marker-end", function(d) { return "url(#" + d.type + "MarkerId" + ")"; });
+	
+var testPath = svg.append("g").selectAll("path")
+    .data(force.links().filter(function(d) { return d.type === 'testRoute1'; }))
+  .enter().append("path")
+    .attr("class", function(d) { return "link " + d.type; })
+    .attr("marker-mid", function(d) { return "url(#" + d.type + "MarkerId" + ")"; });
 
 var circle = svg.append("g").selectAll("circle")
     .data(force.nodes())
@@ -151,21 +180,19 @@ var text = svg.append("g").selectAll("text")
 	.attr("dx", -32)
 	.attr("dy", 32)
     .text(function(d) { return d.name; });
-	
-tick();
 
 // Use elliptical arc path segments to doubly-encode directionality.
 function tick() {
-  path.attr("d", linkArc);
-  errPath.attr("d", linkArc);
-  circle.attr("transform", transform);
-  text.attr("transform", transform);
-  
-  normalPath
-	.attr("x1", function(d) { return d.source.x; })
-	.attr("y1", function(d) { return d.source.y; })
-	.attr("x2", function(d) { return d.target.x; })
-	.attr("y2", function(d) { return d.target.y; });
+	circle.attr("transform", transform);
+	text.attr("transform", transform);
+	testPath.attr("d", linkArc);	
+	path.attr("d", linkArc);
+	errPath.attr("d", linkArc);
+	normalPath
+		.attr("x1", function(d) { return d.source.x; })
+		.attr("y1", function(d) { return d.source.y; })
+		.attr("x2", function(d) { return d.target.x; })
+		.attr("y2", function(d) { return d.target.y; });
 }
 
 function linkArc(d) {
