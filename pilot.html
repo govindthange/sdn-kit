@@ -81,22 +81,6 @@
 					.distance(200)
 					.charge(-200)
 					.size([innerWidth, innerHeight]);
-		
-		/*
-		// build the arrow.
-		svg.append("svg:defs").selectAll("marker")
-					.data(["end"])      // Different link/path types can be defined here
-				  .enter().append("svg:marker")    // This section adds in the arrows
-					.attr("id", String)
-					.attr("viewBox", "0 -5 10 10")
-					.attr("refX", 15)
-					.attr("refY", -1.5)
-					.attr("markerWidth", 6)
-					.attr("markerHeight", 6)
-					.attr("orient", "auto")
-				  .append("svg:path")
-					.attr("d", "M0,-5L10,0L0,5");
-		*/
 			
 		d3.json("network.json", function(err, data) {
 			update(data);
@@ -136,17 +120,19 @@
 				.alpha(0)
 				.start();
 			
-			svg.append("svg:defs").selectAll("marker")
-							.data(["end"])//["suit", "licensing", "resolved"])
-						  .enter().append("svg:marker")
-							.attr("id", String)
-							.attr("viewBox", "0 -5 10 10")
-							.attr("refX", 5)
-							.attr("markerWidth", 6)
-							.attr("markerHeight", 6)
-							.attr("orient", "auto")
-						  .append("svg:path")
-							.attr("d", "M0,-5L10,0L0,5");
+		// Per-type markers, as they don't inherit styles.
+		svg.append("defs").selectAll("marker")
+			.data(["link", "route", "hop"])
+		  .enter().append("marker")
+			.attr("id", function(d) { return d; })
+			.attr("viewBox", "0 -5 10 10")
+			.attr("refX", 15)
+			.attr("refY", -1.5)
+			.attr("markerWidth", 6)
+			.attr("markerHeight", 6)
+			.attr("orient", "auto")
+		  .append("path")
+			.attr("d", "M0,-5L10,0L0,5");
 			
 			var n=50;
 			for (var i = n * n; i > 0; --i) force.tick();
@@ -176,7 +162,8 @@
 					.append("path")
 						.attr("d", diagonalFn)
 						.attr("class", "route-path")
-						.call(force.drag);
+						.call(force.drag)
+						.attr("marker-end", function(d) { return "url(#" + d.type + ")"; });
 			
 			networkHops
 				.enter()
@@ -184,7 +171,8 @@
 						.attr("d", curveFn)
 						.attr("class", "hop-path")
 						.call(force.drag)
-						.attr("marker-end", "url(#end)");;
+						.attr("marker-end", function(d) { return "url(#" + d.type + ")"; });
+						//.attr("marker-end", "url(#end)");;
 						
 			var n = networkNodes.length;
 			networkNodes.forEach(function(d, i) {
