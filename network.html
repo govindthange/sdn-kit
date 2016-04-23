@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.link {
+  fill: none;
+  stroke: #666;
+  stroke-width: 1.5px;
+}
+
+#errorRoute {
+  fill: red;
+}
+
+.link.errorRoute {
+  stroke: red;
+  stroke-dasharray: 0,2 1;
+}
+
+#congestedRoute {
+  fill: orange;
+}
+.link.congestedRoute {
+	stroke: orange;
+	stroke-width: 2;
+}
+
+circle {
+  fill: #ccc;
+  stroke: #333;
+  stroke-width: 1.5px;
+}
+
+text {
+  font: 10px sans-serif;
+  pointer-events: none;
+  text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, -1px 0 0 #fff;
+}
+
+</style>
+<body>
+<script src="//d3js.org/d3.v3.min.js"></script>
+<script>
+
+var devices = [
+	{name: "192.168.1.0/24", type: "lan"},
+	{name: "172.21.20.0/24", type: "lan"},
+	{name: "CatOsSwitch1", type: "switch"},
+	{name: "CatOsSwitch2", type: "switch"},
+	{name: "CatOsSwitch3", type: "switch"},
+	{name: "NY_POP", type: "router"},
+	{name: "server1", type: "router"}
+];
+
+var links = [
+  {source: "172.21.20.0/24", target: "Amazon", type: "errorRoute"},
+  {source: "172.21.20.0/24", target: "CatOsSwitch3", type: "errorRoute"},
+  {source: "CatOsSwitch1", target: "192.168.1.0/24", type: "congestedRoute"},
+  {source: "NY_POP", target: "192.168.1.0/24", type: "congestedRoute"},
+  {source: "server1", target: "192.168.1.0/24", type: "congestedRoute"},
+  {source: "CatOsSwitch3", target: "192.168.1.0/24", type: "congestedRoute"},
+  {source: "CatOsSwitch2", target: "192.168.1.0/24", type: "congestedRoute"},
+  {source: "172.21.20.0/24", target: "Barnes & Noble", type: "normalRoute"},
+  {source: "172.21.20.0/24", target: "Foxconn", type: "normalRoute"},
+  {source: "Oracle", target: "Google", type: "normalRoute"},
+  {source: "192.168.1.0/24", target: "CatOsSwitch3", type: "normalRoute"},
+  {source: "172.21.20.0/24", target: "Inventec", type: "normalRoute"},
+  {source: "server2", target: "CatOsSwitch2", type: "congestedRoute"},
+  {source: "server3", target: "CatOsSwitch2", type: "normalRoute"},
+  {source: "server4", target: "server2", type: "normalRoute"},
+  {source: "server5", target: "server1", type: "congestedRoute"},
+  {source: "192.168.1.0/24", target: "NY_POP", type: "normalRoute"},
+  {source: "172.21.20.0/24", target: "NY_POP", type: "normalRoute"},
+  {source: "switch1", target: "ZTE", type: "normalRoute"},
+  {source: "switch2", target: "ZTE", type: "normalRoute"},
+  {source: "CatOsSwitch2", target: "CatOsSwitch1", type: "congestedRoute"},
+  {source: "192.168.1.0/24", target: "CatOsSwitch1", type: "normalRoute"},
+  {source: "CatOsSwitch2", target: "server3", type: "errorRoute"},
+  {source: "server1", target: "server5", type: "normalRoute"}
+];
+
+var nodes = {};
+
+// Compute the distinct nodes from the links.
+links.forEach(function(link) {
+  link.source = nodes[link.source] || (nodes[link.source] = {name: link.source});
+  link.target = nodes[link.target] || (nodes[link.target] = {name: link.target});
+});
+
+var width = 960,
+    height = 600;
+
+var force = d3.layout.force()
+	.gravity(.05)
+    .nodes(d3.values(nodes))
+    .links(links)
+    .size([width, height])
+    .linkDistance(100)
+    .charge(-300)
+    .start();
+
+var n=50;
+for (var i = n * n; i > 0; --i) force.tick();
+force.stop();
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+// Per-type markers, as they don't inherit styles.
+svg.append("defs").selectAll("marker")
+    .data(["normalRoute", "errorRoute", "congestedRoute"])
+  .enter().append("marker")
+    .attr("id", function(d) { return d; })
+    .attr("viewBox", "0 -5 10 10")
+    .attr("refX", 15)
+    .attr("refY", -1.5)
+    .attr("markerWidth", 6)
+    .attr("markerHeight", 6)
+    .attr("orient", "auto")
+  .append("path")
+    .attr("d", "M0,-5L10,0L0,5");
+
+var errPath = svg.append("g").selectAll("path")
+    .data(force.links().filter(function(d) { return d.type === 'errorRoute'; }))
+  .enter().append("path")
+    .attr("class", function(d) { return "link " + d.type; })
+	.attr("marker-mid", function(d) { return "url(#" + d.type + ")"; });
+var normalPath = svg.append("g").selectAll("path")
+    .data(force.links().filter(function(d) { return d.type === 'normalRoute'; }))
+  .enter().append("line")
+    .attr("class", function(d) { return "link " + d.type; })
+	.attr("marker-mid", function(d) { return "url(#" + d.type + ")"; });	
+var path = svg.append("g").selectAll("path")
+    .data(force.links().filter(function(d) { return d.type === 'congestedRoute'; }))
+  .enter().append("path")
+    .attr("class", function(d) { return "link " + d.type; })
+    .attr("marker-end", function(d) { return "url(#" + d.type + ")"; });
+
+var circle = svg.append("g").selectAll("circle")
+    .data(force.nodes())
+  .enter().append("circle")
+    .attr("r", 6)
+    .call(force.drag);
+
+var text = svg.append("g").selectAll("text")
+    .data(force.nodes())
+  .enter().append("text")
+    .attr("x", 8)
+    .attr("y", ".31em")
+	.attr("dx", -32)
+	.attr("dy", 32)
+    .text(function(d) { return d.name; });
+	
+tick();
+
+// Use elliptical arc path segments to doubly-encode directionality.
+function tick() {
+  path.attr("d", linkArc);
+  errPath.attr("d", linkArc);
+  circle.attr("transform", transform);
+  text.attr("transform", transform);
+  
+  normalPath
+	.attr("x1", function(d) { return d.source.x; })
+	.attr("y1", function(d) { return d.source.y; })
+	.attr("x2", function(d) { return d.target.x; })
+	.attr("y2", function(d) { return d.target.y; });
+}
+
+function linkArc(d) {
+  var dx = d.target.x - d.source.x,
+      dy = d.target.y - d.source.y,
+      dr = Math.sqrt(dx * dx + dy * dy);
+  return "M" + d.source.x + "," + d.source.y + "A" + dr + "," + dr + " 0 0,1 " + d.target.x + "," + d.target.y;
+}
+
+function transform(d) {
+  return "translate(" + d.x + "," + d.y + ")";
+}
+
+</script>
