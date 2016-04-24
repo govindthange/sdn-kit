@@ -6,11 +6,7 @@
         height: 100%;
         margin: 0;
       }
-      svg {
-        position: absolute;
-        top: 0;
-        left: 0;
-      }
+     
       p {
         text-align: center;
       }
@@ -71,15 +67,17 @@ text {
 
 </style>
 <body>
+<div><img width="800px" height="600px" src="images/network_health_at_a_glance.png"></div>
+<svg id="networkMapSvgId"></svg>
+
 <script src="//d3js.org/d3.v3.min.js"></script>
 <script>
 	var width = 960,
 		height = 600;
 			
-	var svg = d3.select("body").append("svg")
-			.attr("id", "networkMapSvgId")
+	var svg = d3.select("#networkMapSvgId")
+			.attr("height", height)
 			.attr("width", "100%")
-			.attr("height", "100%")
 			.call(d3.behavior.zoom().on("zoom", function () {
 					svg.attr("transform", "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")")
 				}))
