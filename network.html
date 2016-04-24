@@ -32,7 +32,7 @@
 }
 .link.congestedRoute {
 	stroke: orange;
-	stroke-width: 2;
+	stroke-width: 1;
 }
 
 #testRoute1MarkerId {
@@ -71,6 +71,7 @@ text {
 | <a href="http://info.netbraintech.com/dynamic-map-private-demo.html?utm_source=Google&utm_medium=Google%20PPC&utm_campaign=Network%20Diagram&gclid=CK6nsfnQ-8sCFc1hfgodsA0Lqg" target="_blank">Netbrain Site 2</a>
 <script src="//d3js.org/d3.v3.min.js"></script>
 <script>
+	var simulationMode = false;
 	var width = 960,
 		height = 600;
 			
@@ -155,8 +156,8 @@ text {
 			link.target = nodes[link.target];
 		});
 
-		var force = d3.layout.force()
-			.gravity(.05)
+		force = d3.layout.force()
+			//.gravity(.01)
 			.nodes(d3.values(nodes))
 			.links(links)
 			.size([width, height])
@@ -164,9 +165,14 @@ text {
 			.charge(-650)
 			.start();
 		
-		var n=50;
-		for (var i = n * n; i > 0; --i) force.tick();
-		force.stop();
+		if (simulationMode === true) {
+			force.on("tick", tick);
+		}
+		else {
+			var n=500;
+			for (var i = n * n; i > 0; --i) force.tick();
+			force.stop();
+		}
 		
 		var errPath = svg.append("g").selectAll("path")
 			.data(force.links().filter(function(d) { return d.type === 'errorRoute'; }))
@@ -248,8 +254,11 @@ text {
 			.attr("dx", -20)
 			.attr("dy", 46)
 			.text(function(d) { return d.memory ? 'MEM: '+d.memory+'%' : ''; });
-			
-		tick();
+		
+		
+		if (!simulationMode || simulationMode === false) {
+			tick();
+		}
 	}
 		
 	// Use elliptical arc path segments to doubly-encode directionality.
@@ -335,10 +344,18 @@ text {
 	function onDragNodeStart(d, i) {
 		d3.event.sourceEvent.stopPropagation();
 		d3.select(this).classed("dragging", true);
+		
+		if (simulationMode === true) {
+			force.stop();
+		}
 	}
 	
 	function onDragNodeEnd(d, i) {
 		d3.select(this).classed("dragging", false);
+		
+		if (simulationMode === true) {
+			force.start();
+		}
 	}
 	
 	function onDragNode(d,i) {
