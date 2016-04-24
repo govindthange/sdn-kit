@@ -6,7 +6,6 @@
         height: 100%;
         margin: 0;
       }
-     
       p {
         text-align: center;
       }
@@ -15,7 +14,7 @@
   stroke: #666;
   stroke-width: 1.5px;
 }
-
+		
 #errorRouteMarkerId {
   fill: none;
   stroke: red;
@@ -54,30 +53,33 @@ circle {
 }
 
 text {
-  font: 10px sans-serif;
+  font: 11px sans-serif;
   pointer-events: none;
   text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, -1px 0 0 #fff;
 }
 
 .systemReading {
   fill: blue;
-  font: 8px sans-serif;
+  font: 9px sans-serif;
   pointer-events: none;
 }
 
 </style>
 <body>
-<div><img width="800px" height="600px" src="images/network_health_at_a_glance.png"></div>
-<svg id="networkMapSvgId"></svg>
-
+<a href="templates.html" target="_blank">Netbrain Template Images</a>
+| <a href="http://www.netbraintech.com/free-tools/devops-edition/" target="_blank">Netbrain Site 1</a>
+| <a href="http://info.netbraintech.com/dynamic-map-private-demo.html?utm_source=Google&utm_medium=Google%20PPC&utm_campaign=Network%20Diagram&gclid=CK6nsfnQ-8sCFc1hfgodsA0Lqg" target="_blank">Netbrain Site 2</a>
 <script src="//d3js.org/d3.v3.min.js"></script>
 <script>
 	var width = 960,
 		height = 600;
 			
-	var svg = d3.select("#networkMapSvgId")
-			.attr("height", height)
+	var svg = d3.select("body").append("svg")
+			.attr("id", "networkMapSvgId")
+			//.attr("width", width)
+			//.attr("height", height)
 			.attr("width", "100%")
+			.attr("height", "100%")
 			.call(d3.behavior.zoom().on("zoom", function () {
 					svg.attr("transform", "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")")
 				}))
@@ -158,8 +160,8 @@ text {
 			.nodes(d3.values(nodes))
 			.links(links)
 			.size([width, height])
-			.linkDistance(100)
-			.charge(-300)
+			.linkDistance(175)
+			.charge(-650)
 			.start();
 		
 		var n=50;
@@ -192,22 +194,10 @@ text {
 			.attr("class", function(d) { return "link " + d.type; })
 			.attr("marker-mid", function(d) { return "url(#" + d.type + "MarkerId" + ")"; });
 
-		var dragCircles = d3.behavior.drag()
-					.on("dragstart", function(d, i) {
-						d3.event.sourceEvent.stopPropagation();
-						d3.select(this).classed("dragging", true);
-					})
-					.on("dragend", function(d, i) {
-						d3.select(this).classed("dragging", false);
-					})
-					.on("drag", function(d,i) {
-						d.x += d3.event.dx;
-						d.y += d3.event.dy;
-						d3.select(this).classed("dragging", true).select("circle").attr("transform", transform);
-						d3.select(this).classed("dragging", true).selectAll("text").attr("transform", transform);
-						d.outboundLinks.forEach(onDragNode);
-						d.inboundLinks.forEach(onDragNode);
-					});
+		var dragNodeBehavior = d3.behavior.drag()
+					.on("dragstart", onDragNodeStart)
+					.on("dragend", onDragNodeEnd)
+					.on("drag", onDragNode);
 		
 		// define the nodes
 		var node = svg.selectAll(".node")
@@ -216,18 +206,29 @@ text {
 			.attr("class", "node")
 			.on("mouseover", onMouseOverNode)
 			.on("mouseout", onMouseOutNode)
-			.call(dragCircles);
+			.call(dragNodeBehavior);
 			
 		// add the nodes
 		node.append("circle")
-			.attr("r", 5);
-			
+			.attr("r", 4);
+		
+		// add the image
+		node.append("image")
+			.attr("width", 32)
+			.attr("height", 32)
+			.attr("x", function(d) { return d.x; })
+			.attr("y", function(d) { return d.y; })
+			.attr("transform", "translate(-16,-18)")
+			.attr("xlink:href", function(d) { return getImageByDeviceType(d.type);});
+
 		// add the text 
 		node.append("text")
+			//.attr("x", 12)
+			//.attr("dy", ".35em")
 			.attr("x", 8)
 			.attr("y", ".31em")
 			.attr("dx", -32)
-			.attr("dy", 32)
+			.attr("dy", 20)
 			.text(function(d) { return d.name; });
 		
 		// add the text 
@@ -235,8 +236,8 @@ text {
 			.attr("class", "systemReading")
 			.attr("x", 8)
 			.attr("y", ".31em")
-			.attr("dx", -24)
-			.attr("dy", 44)
+			.attr("dx", -20)
+			.attr("dy", 34)
 			.text(function(d) { return d.cpu ? 'CPU: '+d.cpu+'%' : ''; });
 			
 		// add the text 
@@ -244,8 +245,8 @@ text {
 			.attr("class", "systemReading")
 			.attr("x", 8)
 			.attr("y", ".31em")
-			.attr("dx", -24)
-			.attr("dy", 56)
+			.attr("dx", -20)
+			.attr("dy", 46)
 			.text(function(d) { return d.memory ? 'MEM: '+d.memory+'%' : ''; });
 			
 		tick();
@@ -256,6 +257,7 @@ text {
 		var svg = d3.select("#networkMapSvgId");
 		var circle = svg.selectAll("circle");
 		var text = svg.selectAll("text");
+		var images = svg.selectAll("image");
 		var errPath = svg.selectAll("path.errorRoute");
 		var normalPath = svg.selectAll("line.normalRoute");	
 		var path = svg.selectAll("path.congestedRoute");		
@@ -263,8 +265,12 @@ text {
 		
 		circle.attr("transform", transform);
 		text.attr("transform", transform);
+		images
+			.attr("x", function(d) { return d.x; })
+			.attr("y", function(d) { return d.y; });
 
-		testPath.attr("d", linkArc);
+		var diagonalFn = d3.svg.diagonal().projection(function(d) { return [d.x, d.y]; });
+		testPath.attr("d", diagonalFn);
 		
 		path.attr("d", linkArc);
 		errPath.attr("d", linkArc);
@@ -287,7 +293,8 @@ text {
 	}
 	
 	// action to take on mouse onMouseOverNode
-	function onMouseOverNode() {	
+	function onMouseOverNode() {
+	
 		d3.select(this).selectAll("text").transition()
 			.duration(750)
 			//.attr("x", 22)
@@ -296,14 +303,25 @@ text {
 			//.style("font", "20px sans-serif");
 		d3.select(this).select("circle").transition()
 			.duration(500)
-			.attr("r", 10);
+			.attr("r", 5);
+		d3.select(this).select("image").transition()
+			.duration(500)
+			.attr("width", 42)
+			.attr("height", 42)
+			.attr("transform", "translate(-20,-23)");
 	}
 	 
 	// action to take on mouse double onMouseOverNode
-	function onMouseOutNode() {		
+	function onMouseOutNode() {
+		d3.select(this).select("image").transition()
+			.duration(500)
+			.attr("width", 32)
+			.attr("height", 32)
+			.attr("transform", "translate(-16,-18)");
+			
 		d3.select(this).select("circle").transition()
 			.duration(750)
-			.attr("r", 6);			
+			.attr("r", 4);			
 		d3.select(this).selectAll("text:not(.systemReading)").transition()
 			.duration(500)
 			//.attr("x", 12)
@@ -314,7 +332,31 @@ text {
 			;
 	}
 	
-	function onDragNode(d) {
+	function onDragNodeStart(d, i) {
+		d3.event.sourceEvent.stopPropagation();
+		d3.select(this).classed("dragging", true);
+	}
+	
+	function onDragNodeEnd(d, i) {
+		d3.select(this).classed("dragging", false);
+	}
+	
+	function onDragNode(d,i) {
+		d.x += d3.event.dx;
+		d.y += d3.event.dy;
+		d3.select(this).classed("dragging", true).select("circle").attr("transform", transform);
+		d3.select(this).classed("dragging", true).selectAll("text").attr("transform", transform);
+		
+		d3.select(this).classed("dragging", true)
+			.select("image")
+				.attr("x", function(d) { return d.x; })
+				.attr("y", function(d) { return d.y; });
+				
+		d.outboundLinks.forEach(onDragLink);
+		d.inboundLinks.forEach(onDragLink);
+	}
+	
+	function onDragLink(d) {
 		var link = d3.select("#" + d.type + "Path"  + d.id);
 		if (d.type === "normalRoute") {
 			link
@@ -323,9 +365,52 @@ text {
 				.attr("x2", function(d) { return d.target.x; })
 				.attr("y2", function(d) { return d.target.y; });
 		}
+		else if (d.type === "testRoute1") {
+			var diagonalFn = d3.svg.diagonal().projection(function(d) { return [d.x, d.y]; });
+			link.attr("d", diagonalFn);
+		}
 		else {
 			link.attr("d", linkArc);
 		}
 	}
+	
+	function getImageByDeviceType ( type) {
+		if (type === 'host') {
+			return "./images/host.png";
+		}
+		else if (type === 'server') {
+			return "./images/server.png";
+		}
+		else if (type === 'switch') {
+			return "./images/switch.png";
+		}
+		else if (type === 'wireless_router') {
+			return "./images/wireless-router-down.png";
+		}
+		else if (type === 'router') {
+			return "./images/router.png";
+		}
+		else if (type === 'wan') {
+			return "./images/cloud.png";
+		}
+		else if (type === 'pbx') {
+			return "./images/pbx.png";
+		}
+		else if (type === 'hub') {
+			return "./images/hub-unstable.png";
+		}
+		else if (type === 'bridge') {
+			return "./images/bridge-disabled.png";
+		}
+		else if (type === 'firewall') {
+			return "./images/firewall-vertical-up.png";
+		}
+		else if (type === 'server_down') {
+			return "./images/server-disabled.png";
+		}
+
+		return null;
+	}
 
 </script>
+</body>
