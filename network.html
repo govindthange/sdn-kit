@@ -71,7 +71,7 @@ text {
 | <a href="http://info.netbraintech.com/dynamic-map-private-demo.html?utm_source=Google&utm_medium=Google%20PPC&utm_campaign=Network%20Diagram&gclid=CK6nsfnQ-8sCFc1hfgodsA0Lqg" target="_blank">Netbrain Site 2</a>
 <script src="//d3js.org/d3.v3.min.js"></script>
 <script>
-	var simulationMode = false;
+	var simulationMode = true;
 	var width = 960,
 		height = 600;
 			
@@ -79,8 +79,8 @@ text {
 			.attr("id", "networkMapSvgId")
 			//.attr("width", width)
 			//.attr("height", height)
-			.attr("width", "100%")
-			.attr("height", "100%")
+			.attr("width", "95%")
+			.attr("height", "94%")
 			.call(d3.behavior.zoom().on("zoom", function () {
 					svg.attr("transform", "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")")
 				}))
@@ -425,9 +425,20 @@ text {
 		else if (type === 'server_down') {
 			return "./images/server-disabled.png";
 		}
+		else if (type === 'lan') {
+			return "./images/lan.png";
+		}
 
 		return null;
 	}
 
 </script>
+
+<br/>
+<br/>
+| <a href="network.json" target="_blank">Click here</a> to see the remote JSON file which is fetched and rendered below.
+| The inter node connections shown in below network diagram does NOT represent any Network Topology. 
+<br/>
+<br/>
+
 </body>
